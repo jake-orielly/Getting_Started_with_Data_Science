@@ -7,7 +7,7 @@ with open('../../../../../../../Volumes/jakesExternalDrive/tweets.txt','r') as f
     file = f.read()
     file = file.split('\n\n')[:-1]
     count = 0
-    time_counts = Counter(json.loads(item)['created_at'].split(' ')[3][:4] for item in file)
+    time_counts = Counter(json.loads(item)['created_at'].split(' ')[3] for item in file)
 
 times = sorted(time_counts)
 time_vals = [time_counts[time] for time in times]
