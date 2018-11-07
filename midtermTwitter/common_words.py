@@ -1,22 +1,28 @@
 from collections import Counter
 import matplotlib.pyplot as plt
-import json
+import json, unicodedata, sys, io
 
-#with open('../../../../../../../Volumes/jakesExternalDrive/tweets.txt','r') as f:
-with open('tweets.txt','r') as f:
+tbl = dict.fromkeys(i for i in xrange(sys.maxunicode)
+                    if unicodedata.category(unichr(i)).startswith('P'))
+
+def remove_punctuation(text):
+    return text.translate(tbl)
+
+with open('../../../../../../../Volumes/jakesExternalDrive/tweets.txt','r') as f:
+    #with open('tweets.txt','r') as f:
     file = f.read()
     file = file.split('\n\n')[:-1]
-    count = 0
-    time_counts = Counter(json.loads(item)['created_at'].split(' ')[3][:4] for item in file)
 
-    counter = Counter(word.lower()                      # lowercase words
+    counter = Counter(remove_punctuation(word.lower())       # lowercase words
                       for item in file
                       for word in json.loads(item)['text'].strip().split(' ')  # split on spaces
-                      if word)
+                      if remove_punctuation(word))
 
-times = sorted(time_counts)
-time_vals = [time_counts[time] for time in times]
-plt.plot(times, time_vals)
-plt.ylabel('# of tweets')
-plt.title('That\'s a lot of tweets!')
-plt.show()
+
+with io.open('common_words.txt','w',encoding='utf-8') as f:
+    count = 1
+    for word, word_count in counter.most_common(500):
+        f.write((str(count) + ' : ' +str(word_count) + ' : ' + word + '\n'))
+        count += 1
+
+print('Done!')
