@@ -73,3 +73,6 @@ def getCol(A,j):
 
 def random_normal():
     return inverse_normal_cdf(random.random())
+
+def mean(args)
+    return sum(args)/len(args)
