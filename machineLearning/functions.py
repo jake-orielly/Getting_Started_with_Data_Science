@@ -91,3 +91,10 @@ def minimize_stochastic(target_fn, gradient_fn, x, y, theta_0, alpha_0=0.01):
             theta = vector_subtract(theta, scalar_multiply(alpha, gradient_i))
 
     return min_theta
+
+def normal_cdf(x, mu=0, sigma=1):
+    return (1 + math.erf((x - mu) / math.sqrt(2) / sigma)) / 2
+
+def total_sum_of_squares(y):
+    """the total squared variation of y_i's from their mean"""
+    return sum(v ** 2 for v in de_mean(y))
