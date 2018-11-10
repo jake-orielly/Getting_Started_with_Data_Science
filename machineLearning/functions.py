@@ -92,9 +92,85 @@ def minimize_stochastic(target_fn, gradient_fn, x, y, theta_0, alpha_0=0.01):
 
     return min_theta
 
+def negate(f):
+    """return a function that for any input x returns -f(x)"""
+    return lambda *args, **kwargs: -f(*args, **kwargs)
+
+def negate_all(f):
+    """the same when f returns a list of numbers"""
+    return lambda *args, **kwargs: [-y for y in f(*args, **kwargs)]
+
+def maximize_stochastic(target_fn, gradient_fn, x, y, theta_0, alpha_0=0.01):
+    return minimize_stochastic(negate(target_fn),
+                               negate_all(gradient_fn),
+                               x, y, theta_0, alpha_0)
+
 def normal_cdf(x, mu=0, sigma=1):
     return (1 + math.erf((x - mu) / math.sqrt(2) / sigma)) / 2
 
 def total_sum_of_squares(y):
     """the total squared variation of y_i's from their mean"""
     return sum(v ** 2 for v in de_mean(y))
+
+def shape(A):
+    num_rows = len(A)
+    num_cols = len(A[0]) if A else 0
+    return num_rows, num_cols
+
+def get_row(A, i):
+    return A[i]
+
+def get_column(A, j):
+    return [A_i[j] for A_i in A]
+
+def make_matrix(num_rows, num_cols, entry_fn):
+    """returns a num_rows x num_cols matrix
+        whose (i,j)-th entry is entry_fn(i, j)"""
+    return [[entry_fn(i, j) for j in range(num_cols)]
+            for i in range(num_rows)]
+
+def scale(data_matrix):
+    num_rows, num_cols = shape(data_matrix)
+    means = [mean(get_column(data_matrix,j))
+             for j in range(num_cols)]
+    stdevs = [standard_deviation(get_column(data_matrix,j))
+              for j in range(num_cols)]
+    return means, stdevs
+
+def rescale(data_matrix):
+    """rescales the input data so that each column
+        has mean 0 and standard deviation 1
+        ignores columns with no deviation"""
+    means, stdevs = scale(data_matrix)
+    
+    def rescaled(i, j):
+        if stdevs[j] > 0:
+            return (data_matrix[i][j] - means[j]) / stdevs[j]
+        else:
+            return data_matrix[i][j]
+
+    num_rows, num_cols = shape(data_matrix)
+    return make_matrix(num_rows, num_cols, rescaled)
+
+def scale(data_matrix):
+    num_rows, num_cols = shape(data_matrix)
+    means = [mean(get_column(data_matrix,j))
+             for j in range(num_cols)]
+    stdevs = [standard_deviation(get_column(data_matrix,j))
+              for j in range(num_cols)]
+    return means, stdevs
+
+def rescale(data_matrix):
+    """rescales the input data so that each column
+        has mean 0 and standard deviation 1
+        ignores columns with no deviation"""
+    means, stdevs = scale(data_matrix)
+    
+    def rescaled(i, j):
+        if stdevs[j] > 0:
+            return (data_matrix[i][j] - means[j]) / stdevs[j]
+        else:
+            return data_matrix[i][j]
+
+    num_rows, num_cols = shape(data_matrix)
+    return make_matrix(num_rows, num_cols, rescaled)
