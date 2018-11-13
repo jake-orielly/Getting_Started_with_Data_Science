@@ -12,6 +12,9 @@ def sum_of_squares(v):
     """v_1 * v_1 + ... + v_n * v_n"""
     return dot(v,v)
 
+def squared_distance(v, w):
+    return sum_of_squares(vector_subtract(v, w))
+
 def vector_add(v, w, addon=1):
     """adds corresponding elements"""
     return [v_i + w_i*addon for v_i, w_i in zip(v,w)]
@@ -65,6 +68,15 @@ def in_random_order(data):
 def scalar_multiply(c, v):
     """c is a number, v is a vector"""
     return [c * v_i for v_i in v]
+
+def vector_sum(vectors):
+    return reduce(vector_add, vectors)
+
+def vector_mean(vectors):
+    """compute the vector whose i-th element is the mean of the
+        i-th elements of the input vectors"""
+    n = len(vectors)
+    return scalar_multiply(1/n, vector_sum(vectors))
 
 def minimize_stochastic(target_fn, gradient_fn, x, y, theta_0, alpha_0=0.01):
     data = zip(x,y)
