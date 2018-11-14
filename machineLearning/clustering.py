@@ -77,7 +77,7 @@ plt.show()"""
 
 # use clustering to translate a picture into a small # of colors
 
-"""path_to_png = r"./puppy.png"
+path_to_png = r"./puppy.png"
 img = mpimg.imread(path_to_png, 0);
 
 pixels = [pixel for row in img for pixel in row]
@@ -93,7 +93,7 @@ new_img = [[recolor(pixel) for pixel in row]
 
 plt.imshow(new_img)
 plt.axis('off')
-plt.show"""
+plt.show
 
 # Bottom up clustering
 def is_leaf(cluster):
