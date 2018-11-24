@@ -1,3 +1,4 @@
+
 from __future__ import division
 import math, random, re
 from collections import defaultdict
@@ -56,7 +57,55 @@ class Table:
         limit_table.rows = self.rows[:num_rows]
         return limit_table
 
+    def group_by(self, group_by_columns, aggregates, having=None):
+        grouped_rows = defaultdict(list)
+        
+        #populate groups
+        for row in self.rows:
+            key = tuple(row[column] for column in group_by_columns)
+            grouped_rows[key].append(row)
 
+        #result table cosists of group_by columns and agregates
+        result_table = Table(group_by_columns + aggregates.keys())
+
+        for key, rows in grouped_rows.iteritems():
+            if having is None or having(rows):
+                new_row = list(key)
+                for aggregate_name, aggregate_fn in aggregates.iteritems():
+                    new_row.append(aggregate_fn(rows))
+                result_table.insert(new_row)
+        return result_table
+
+    def order_by(self, order):
+        new_table = self.select()   #makes copy
+        new_table.rows.sort(key=order)
+        return new_table
+
+    def join(self, other_table, left_join=False):
+        join_on_columns = [c for c in self.columns  #columns in both tables
+                           if c in other_table.columns]
+
+        additional_columns = [c for c in other_table.columns    #columns only in right table
+                              if c not in join_on_columns]
+
+        # all columns from left table + additional columns from right table
+        join_table = Table(self.columns + additional_columns)
+
+        for row in self.rows:
+            def is_join(other_row):
+                return all(other_row[c] == row[c] for c in join_on_columns)
+
+            other_rows = other_table.where(is_join).rows
+
+            #each other row that matches this one produces a result row
+            for other_row in other_rows:
+                join_table.insert([row[c] for c in self.columns] + [other_row[c] for c in additional_columns])
+
+            #if no rows match and it's a left join, output with None
+            if left_join and not other_rows:
+                join_table.insert([row[c] for c in self.columns] + [None for c in additional_columns])
+
+        return join_table
 
 users = Table(["user_id", "name", "num_friends"])
 users.insert([0, "Hero", 0])
@@ -77,4 +126,59 @@ users.delete(lambda row: row['user_id'] == 5)
 #print(users.select(keep_columns=["user_id"]));
 #print(users.where(lambda row: row["name"] == "Dunn").select(keep_columns=["user_id"]));
 def name_length(row): return len(row["name"])
-print(users.select(keep_columns=[],additional_columns={"name_length" : name_length}))
+#print(users.select(keep_columns=[],additional_columns={"name_length" : name_length}))
+
+def min_user_id(rows): return min(row["user_id"] for row in rows)
+
+stats_by_length = users.select(additional_columns={"name_length" : name_length}) \
+                        .group_by(group_by_columns=["name_length"],
+                                  aggregates={"min_user_id" : min_user_id,
+                                              "num_users" : len})
+
+def first_letter_of_name(row):
+    return row["name"][0] if row["name"] else ""
+
+def average_num_friends(rows):
+    return sum(row["num_friends"] for row in rows) / len(rows)
+
+def enough_friends(rows):
+    return average_num_friends > 1
+
+avg_friends_by_letter = users.select(additional_columns={"first_letter" : first_letter_of_name}) \
+                        .group_by(group_by_columns=["first_letter"],
+                                  aggregates={"avg_num_friends" : average_num_friends},
+                                  having=enough_friends)
+
+def sum_user_ids(rows): return sum(row["user_id"] for row in rows)
+
+user_id_sum = users.where(lambda row: row["user_id"] > 1) \
+                    .group_by(group_by_columns=[],
+                              aggregates={"user_id_sum" : sum_user_ids})
+
+friendliest_letters = avg_friends_by_letter \
+    .order_by(lambda row: -row["avg_num_friends"]).limit(4)
+
+user_interests = Table(["user_id", "interest"])
+user_interests.insert([0, "SQL"])
+user_interests.insert([0, "NoSQL"])
+user_interests.insert([2, "SQL"])
+user_interests.insert([2, "MySQL"])
+
+sql_users = users.join(user_interests).where(lambda row: row["interest"] == "SQL") \
+                    .select(keep_columns=["name"])
+
+def count_interests(rows):
+    """counts how many rows have non-None interests"""
+    return len([row for row in rows if row["interest"] is not None])
+
+user_interest_counts = users.join(user_interests, left_join=True) \
+                            .group_by(group_by_columns=["user_id"],
+                                      aggregates={"num_interests" : count_interests})
+
+likes_sql_user_ids = user_interests.where(lambda row: row["interest"] == "SQL")\
+                      .select(keep_columns=["user_id"])
+
+likes_sql_user_ids.group_by(group_by_columns=[], aggregates={"min_user_id" : min_user_id})
+
+user_interests.where(lambda row: row["interest"] == "SQL").join(users).select(["name"])
+
