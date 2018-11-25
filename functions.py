@@ -1,7 +1,10 @@
 from __future__ import division
-import math, random
+import math, random, re
 
-
+def tokenize(message):
+    message = message.lower()
+    all_words = re.findall("[a-z0-9']+", message)
+    return set(all_words)
 
 def dot(v, w):
     """v_1 * w_1 + ... + v_n * w_n"""
